@@ -347,10 +347,10 @@ export const IntegrationMessaging: React.FC = () => {
                         return (
                           <TableRow 
                             key={row.id}
-                            sx={{ 
-                              '&:last-child td, &:last-child th': { border: 0 },
-                              animation: 'fadeIn 0.25s ease'
-                            }}
+                            // sx={{ 
+                            //   '&:last-child td, &:last-child th': { border: 0 },
+                            //   animation: 'fadeIn 0.25s ease'
+                            // }}
                           >
                             <TableCell sx={{ borderBottom: '1px solid', borderColor: 'divider', py: 1.25 }}>
                               <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.825rem', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>

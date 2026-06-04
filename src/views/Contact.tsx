@@ -226,7 +226,10 @@ export const Contact: React.FC = () => {
                   </TableRow>
                 ) : (
                   contacts.map((row) => (
-                    <TableRow key={row.id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                    <TableRow 
+                    key={row.id} 
+                    // sx={{ '&:last-child td, &:last-child th': { border: 0} }}
+                    >
                       {/* Name Column */}
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
