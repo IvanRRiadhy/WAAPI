@@ -137,7 +137,7 @@ export const Login: React.FC = () => {
               </Typography>
             </Box>
             
-            <IconButton 
+            {/* <IconButton 
               onClick={toggleTheme}
               color="primary"
               sx={{ 
@@ -149,7 +149,7 @@ export const Login: React.FC = () => {
               }}
             >
               {themeMode === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
-            </IconButton>
+            </IconButton> */}
           </Box>
 
           <Box>

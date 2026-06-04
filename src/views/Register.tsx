@@ -213,7 +213,7 @@ export const Register: React.FC = () => {
               </Typography>
             </Box>
             
-            <IconButton 
+            {/* <IconButton 
               onClick={toggleTheme}
               color="primary"
               sx={{ 
@@ -225,7 +225,7 @@ export const Register: React.FC = () => {
               }}
             >
               {themeMode === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
-            </IconButton>
+            </IconButton> */}
           </Box>
 
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 4, mt: 1 }}>

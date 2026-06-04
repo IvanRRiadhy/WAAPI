@@ -155,7 +155,7 @@ function App() {
                     </Typography>
                   </Box>
                   
-                  <IconButton 
+                  {/* <IconButton 
                     onClick={toggleTheme}
                     color="primary"
                     sx={{ 
@@ -167,7 +167,7 @@ function App() {
                     }}
                   >
                     {themeMode === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
-                  </IconButton>
+                  </IconButton> */}
                 </Box>
 
                 <Box>
