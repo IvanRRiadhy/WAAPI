@@ -24,12 +24,13 @@ RUN cp /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 # Create directories
 RUN mkdir -p /app/repo /app/scripts /usr/share/nginx/html /var/log
 
-# Copy Nginx config
+# Copy Nginx config and fix Windows line endings
 COPY nginx.conf /etc/nginx/http.d/default.conf
+RUN sed -i 's/\r$//' /etc/nginx/http.d/default.conf
 
-# Copy scripts
+# Copy scripts and fix Windows line endings (CRLF → LF)
 COPY scripts/ /app/scripts/
-RUN chmod +x /app/scripts/*.sh
+RUN sed -i 's/\r$//' /app/scripts/*.sh && chmod +x /app/scripts/*.sh
 
 # Environment variables (can be overridden in docker-compose)
 ENV GIT_REPO_URL=https://github.com/IvanRRiadhy/WAAPI.git
