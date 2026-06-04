@@ -18,13 +18,11 @@ import {
   IconPlug,
   IconAddressBook
 } from '@tabler/icons-react';
-import { useThemeToggle } from '../context/ThemeToggleContext';
 
 export const FullLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
-  const { themeMode, toggleTheme: _toggleTheme } = useThemeToggle();
 
   // Load current logged in user details
   const [currentUser] = React.useState(() => {
@@ -80,7 +78,7 @@ export const FullLayout: React.FC = () => {
           filter: 'blur(120px)', 
           pointerEvents: 'none', 
           zIndex: 0, 
-          opacity: themeMode === 'light' ? 0.25 : 0.15, 
+          opacity: 0.25, 
           animation: 'pulseGlow 10s ease-in-out infinite alternate',
           background: `radial-gradient(circle, ${theme.palette.primary.main} 0%, transparent 70%)`,
         }}
@@ -97,7 +95,7 @@ export const FullLayout: React.FC = () => {
           filter: 'blur(120px)', 
           pointerEvents: 'none', 
           zIndex: 0, 
-          opacity: themeMode === 'light' ? 0.25 : 0.15, 
+          opacity: 0.25, 
           animation: 'pulseGlow 10s ease-in-out infinite alternate',
           background: `radial-gradient(circle, ${theme.palette.secondary.main} 0%, transparent 70%)`,
         }}
@@ -154,18 +152,18 @@ export const FullLayout: React.FC = () => {
                       py: 1.25,
                       color: isSelected ? 'primary.main' : 'text.secondary',
                       bgcolor: isSelected 
-                        ? (themeMode === 'light' ? 'rgba(99, 102, 241, 0.08)' : 'rgba(129, 140, 248, 0.12)')
+                        ? 'rgba(99, 102, 241, 0.08)'
                         : 'transparent',
                       '&:hover': {
-                        bgcolor: themeMode === 'light' ? 'rgba(99, 102, 241, 0.04)' : 'rgba(129, 140, 248, 0.06)',
+                        bgcolor: 'rgba(99, 102, 241, 0.04)',
                         color: 'text.primary',
                       },
                       '&.Mui-selected': {
                         bgcolor: isSelected 
-                          ? (themeMode === 'light' ? 'rgba(99, 102, 241, 0.08)' : 'rgba(129, 140, 248, 0.12)')
+                          ? 'rgba(99, 102, 241, 0.08)'
                           : 'transparent',
                         '&:hover': {
-                          bgcolor: themeMode === 'light' ? 'rgba(99, 102, 241, 0.12)' : 'rgba(129, 140, 248, 0.16)',
+                          bgcolor: 'rgba(99, 102, 241, 0.12)',
                         },
                       },
                       transition: 'all 0.2s ease',
@@ -283,27 +281,6 @@ export const FullLayout: React.FC = () => {
               {currentDate}
             </Typography>
           </Box>
-          
-          {/* <IconButton 
-            onClick={toggleTheme}
-            color="primary"
-            sx={{ 
-              p: 1.25,
-              borderRadius: 3,
-              bgcolor: 'background.paper',
-              border: '1px solid',
-              borderColor: 'divider',
-              '&:hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: `0 4px 12px ${themeMode === 'light' ? 'rgba(99,102,241,0.1)' : 'rgba(129,140,248,0.18)'}`,
-                borderColor: 'primary.main',
-              },
-              transition: 'all 0.2s ease',
-            }}
-            aria-label="Toggle dark/light mode"
-          >
-            {themeMode === 'dark' ? <IconSun size={20} /> : <IconMoon size={20} />}
-          </IconButton> */}
         </Box>
 
         {/* Render Page Subroutes */}

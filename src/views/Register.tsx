@@ -14,8 +14,7 @@ import {
   useTheme,
   CircularProgress
 } from '@mui/material';
-import { IconEye, IconEyeOff, IconSun, IconMoon, IconCheck, IconQrcode } from '@tabler/icons-react';
-import { useThemeToggle } from '../context/ThemeToggleContext';
+import { IconEye, IconEyeOff, IconCheck, IconQrcode } from '@tabler/icons-react';
 import { PhoneInput } from '../components/PhoneInput';
 import { getCountryCallingCode } from 'libphonenumber-js';
 
@@ -54,7 +53,6 @@ export const Register: React.FC = () => {
 
   const navigate = useNavigate();
   const theme = useTheme();
-  const { themeMode, toggleTheme } = useThemeToggle();
 
   const isFormFilled = !!(
     name.trim() &&
@@ -172,7 +170,7 @@ export const Register: React.FC = () => {
           filter: 'blur(120px)', 
           pointerEvents: 'none', 
           zIndex: 0, 
-          opacity: themeMode === 'light' ? 0.25 : 0.15, 
+          opacity: 0.25, 
           background: `radial-gradient(circle, ${theme.palette.primary.main} 0%, transparent 70%)`,
         }}
       />
@@ -188,7 +186,7 @@ export const Register: React.FC = () => {
           filter: 'blur(120px)', 
           pointerEvents: 'none', 
           zIndex: 0, 
-          opacity: themeMode === 'light' ? 0.25 : 0.15, 
+          opacity: 0.25, 
           background: `radial-gradient(circle, ${theme.palette.secondary.main} 0%, transparent 70%)`,
         }}
       />
@@ -212,20 +210,6 @@ export const Register: React.FC = () => {
                 WA Agent
               </Typography>
             </Box>
-            
-            {/* <IconButton 
-              onClick={toggleTheme}
-              color="primary"
-              sx={{ 
-                p: 1,
-                borderRadius: 2.5,
-                bgcolor: 'background.paper',
-                border: '1px solid',
-                borderColor: 'divider',
-              }}
-            >
-              {themeMode === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
-            </IconButton> */}
           </Box>
 
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 4, mt: 1 }}>
@@ -394,7 +378,7 @@ export const Register: React.FC = () => {
                   borderColor: isScanned ? 'success.main' : 'divider',
                   borderRadius: 3,
                   p: 1.5,
-                  bgcolor: themeMode === 'light' ? '#f8f9fa' : '#1e1e1e',
+                  bgcolor: '#f8f9fa',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -406,7 +390,7 @@ export const Register: React.FC = () => {
                 {/* QR Code image */}
                 <Box 
                   component="img"
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=wa-agent-session-${sessionId}&color=${themeMode === 'light' ? '000000' : 'ffffff'}&bgcolor=${themeMode === 'light' ? 'f8f9fa' : '1e1e1e'}`}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=wa-agent-session-${sessionId}&color=000000&bgcolor=f8f9fa`}
                   alt="WhatsApp QR Code"
                   sx={{ 
                     width: '100%', 
@@ -448,7 +432,7 @@ export const Register: React.FC = () => {
                       flexDirection: 'column', 
                       alignItems: 'center', 
                       justifyContent: 'center',
-                      bgcolor: themeMode === 'light' ? 'rgba(255,255,255,0.92)' : 'rgba(30,30,30,0.92)',
+                      bgcolor: 'rgba(255,255,255,0.92)',
                       gap: 1.5
                     }}
                   >

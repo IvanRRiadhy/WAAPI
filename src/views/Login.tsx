@@ -14,8 +14,7 @@ import {
   useTheme,
   Divider
 } from '@mui/material';
-import { IconEye, IconEyeOff, IconSun, IconMoon } from '@tabler/icons-react';
-import { useThemeToggle } from '../context/ThemeToggleContext';
+import { IconEye, IconEyeOff } from '@tabler/icons-react';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -25,7 +24,6 @@ export const Login: React.FC = () => {
   
   const navigate = useNavigate();
   const theme = useTheme();
-  const { themeMode, toggleTheme } = useThemeToggle();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,7 +94,7 @@ export const Login: React.FC = () => {
           filter: 'blur(120px)', 
           pointerEvents: 'none', 
           zIndex: 0, 
-          opacity: themeMode === 'light' ? 0.25 : 0.15, 
+          opacity: 0.25, 
           background: `radial-gradient(circle, ${theme.palette.primary.main} 0%, transparent 70%)`,
         }}
       />
@@ -112,7 +110,7 @@ export const Login: React.FC = () => {
           filter: 'blur(120px)', 
           pointerEvents: 'none', 
           zIndex: 0, 
-          opacity: themeMode === 'light' ? 0.25 : 0.15, 
+          opacity: 0.25, 
           background: `radial-gradient(circle, ${theme.palette.secondary.main} 0%, transparent 70%)`,
         }}
       />
@@ -136,20 +134,6 @@ export const Login: React.FC = () => {
                 WA Agent
               </Typography>
             </Box>
-            
-            {/* <IconButton 
-              onClick={toggleTheme}
-              color="primary"
-              sx={{ 
-                p: 1,
-                borderRadius: 2.5,
-                bgcolor: 'background.paper',
-                border: '1px solid',
-                borderColor: 'divider',
-              }}
-            >
-              {themeMode === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
-            </IconButton> */}
           </Box>
 
           <Box>

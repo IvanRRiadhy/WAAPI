@@ -1,25 +1,25 @@
 import { createTheme } from '@mui/material/styles';
 import type { Theme } from '@mui/material/styles';
 
-export const getAppTheme = (mode: 'light' | 'dark'): Theme => {
+export const getAppTheme = (_mode: 'light' | 'dark' = 'light'): Theme => {
   return createTheme({
     palette: {
-      mode,
+      mode: 'light',
       primary: {
-        main: mode === 'light' ? '#e11d48' : '#fb7185', // Rose-600 vs Rose-400
+        main: '#e11d48', // Rose-600
       },
       secondary: {
-        main: mode === 'light' ? '#ea580c' : '#fb923c', // Orange-600 vs Orange-400
+        main: '#ea580c', // Orange-600
       },
       background: {
-        default: mode === 'light' ? '#f8fafc' : '#090d16', // Slate-50 vs Deep Obsidian
-        paper: mode === 'light' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(15, 23, 42, 0.6)', // Glassmorphic translucent default
+        default: '#f8fafc', // Slate-50
+        paper: 'rgba(255, 255, 255, 0.8)', // Glassmorphic translucent default
       },
       text: {
-        primary: mode === 'light' ? '#0f172a' : '#f8fafc',
-        secondary: mode === 'light' ? '#475569' : '#94a3b8',
+        primary: '#0f172a',
+        secondary: '#475569',
       },
-      divider: mode === 'light' ? 'rgba(225, 29, 72, 0.08)' : 'rgba(255, 255, 255, 0.08)',
+      divider: 'rgba(225, 29, 72, 0.08)',
       success: {
         main: '#2e7d32', // Green
       },
@@ -84,10 +84,8 @@ export const getAppTheme = (mode: 'light' | 'dark'): Theme => {
             transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease, box-shadow 0.3s ease',
             '&:hover': {
               transform: 'translateY(-4px)',
-              borderColor: mode === 'light' ? 'rgba(225, 29, 72, 0.25)' : 'rgba(251, 113, 133, 0.25)',
-              boxShadow: mode === 'light' 
-                ? '0 12px 24px -10px rgba(225, 29, 72, 0.12)' 
-                : '0 12px 24px -10px rgba(251, 113, 133, 0.18)',
+              borderColor: 'rgba(225, 29, 72, 0.25)',
+              boxShadow: '0 12px 24px -10px rgba(225, 29, 72, 0.12)',
             },
           }),
         },

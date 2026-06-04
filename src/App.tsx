@@ -4,15 +4,12 @@ import {
   CssBaseline, 
   ThemeProvider, 
   Typography, 
-  IconButton, 
   Button, 
   Card, 
   CardContent,
   CircularProgress,
 } from '@mui/material';
 import { 
-  IconSun, 
-  IconMoon, 
   IconUpload,
 } from '@tabler/icons-react';
 import { RouterProvider } from 'react-router';
@@ -21,25 +18,9 @@ import { router } from './router';
 import { ThemeToggleContext } from './context/ThemeToggleContext';
 
 function App() {
-  // Theme state initialization
-  const [themeMode, setThemeMode] = useState<'light' | 'dark'>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('theme');
-      if (stored === 'light' || stored === 'dark') return stored;
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    return 'light';
-  });
-
+  const themeMode = 'light';
   const theme = getAppTheme(themeMode);
-
-  useEffect(() => {
-    localStorage.setItem('theme', themeMode);
-  }, [themeMode]);
-
-  const toggleTheme = () => {
-    setThemeMode((prev) => (prev === 'light' ? 'dark' : 'light'));
-  };
+  const toggleTheme = () => {};
 
   // License validation states
   const [isLicenseVerified, setIsLicenseVerified] = useState(false);
@@ -154,20 +135,6 @@ function App() {
                       WA Agent
                     </Typography>
                   </Box>
-                  
-                  {/* <IconButton 
-                    onClick={toggleTheme}
-                    color="primary"
-                    sx={{ 
-                      p: 1,
-                      borderRadius: 2.5,
-                      bgcolor: 'background.paper',
-                      border: '1px solid',
-                      borderColor: 'divider',
-                    }}
-                  >
-                    {themeMode === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
-                  </IconButton> */}
                 </Box>
 
                 <Box>
