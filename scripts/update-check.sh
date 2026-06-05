@@ -12,6 +12,7 @@ LOCK_FILE="/tmp/update-check.lock"
 STATUS_FILE="/tmp/update-status.json"
 
 GIT_BRANCH="${GIT_BRANCH:-main}"
+API_BASE_URL="${API_BASE_URL:-}"
 
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
@@ -85,6 +86,14 @@ npm ci --production=false 2>&1 | tee -a "$LOG_FILE"
 # Build
 log "Building production bundle..."
 npm run build 2>&1 | tee -a "$LOG_FILE"
+
+# Inject runtime config
+log "Writing runtime config (API_BASE_URL=${API_BASE_URL})..."
+cat > dist/config.json <<CONFIG
+{
+  "API_BASE_URL": "${API_BASE_URL}"
+}
+CONFIG
 
 # Deploy — replace Nginx html root
 log "Deploying new build..."

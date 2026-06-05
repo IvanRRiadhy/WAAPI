@@ -13,6 +13,7 @@ services:
       - GIT_REPO_URL=https://github.com/IvanRRiadhy/WAAPI.git
       - GIT_BRANCH=main
       - TZ=Asia/Jakarta
+      - API_BASE_URL=http://192.168.1.135:3010
     volumes:
       # Persist the cloned repo so restarts don't re-clone from scratch
       - wa-agent-repo:/app/repo

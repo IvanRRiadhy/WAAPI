@@ -18,6 +18,7 @@ LOG_FILE="/var/log/wa-agent-update.log"
 GIT_REPO_URL="${GIT_REPO_URL:-https://github.com/IvanRRiadhy/WAAPI.git}"
 GIT_BRANCH="${GIT_BRANCH:-main}"
 TZ="${TZ:-Asia/Jakarta}"
+API_BASE_URL="${API_BASE_URL:-}"
 
 export GIT_BRANCH
 
@@ -46,6 +47,14 @@ npm ci --production=false 2>&1 | tee -a "$LOG_FILE"
 
 log "Building production bundle..."
 npm run build 2>&1 | tee -a "$LOG_FILE"
+
+# ---- Inject runtime config from environment ----
+log "Writing runtime config (API_BASE_URL=${API_BASE_URL})..."
+cat > dist/config.json <<CONFIG
+{
+  "API_BASE_URL": "${API_BASE_URL}"
+}
+CONFIG
 
 log "Deploying to Nginx..."
 rm -rf "${HTML_DIR:?}"/*
