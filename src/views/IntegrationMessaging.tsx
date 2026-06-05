@@ -11,13 +11,6 @@ import {
   Select,
   MenuItem,
   OutlinedInput,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   InputLabel,
   FormControl,
   IconButton,
@@ -27,12 +20,11 @@ import {
 } from '@mui/material';
 import { 
   IconArrowLeft, 
-  IconSend, 
-  IconMessage
+  IconSend,
 } from '@tabler/icons-react';
 import { useAgentList } from '../hooks/useAgents';
 import { useContactList } from '../hooks/useContacts';
-import { useMessageHistory, useSendMessage } from '../hooks/useMessaging';
+import { useSendMessage } from '../hooks/useMessaging';
 
 interface IntegrationItem {
   id: string;
@@ -55,7 +47,6 @@ export const IntegrationMessaging: React.FC = () => {
   // ── Query hooks ──────────────────────────────────────────────────
   const { data: allAgents = [] } = useAgentList();
   const { data: contacts = [] } = useContactList();
-  const { data: history = [] } = useMessageHistory(activeIntegration.id);
   const sendMessage = useSendMessage();
 
   // Filter agents linked to this integration
