@@ -29,6 +29,7 @@ import {
 } from '@tabler/icons-react';
 import { PhoneInput } from '../components/PhoneInput';
 import { getCountries, getCountryCallingCode } from 'libphonenumber-js';
+import { useLicenseInfo, useActivateLicense } from '../hooks/useLicense';
 
 interface UserProfile {
   name: string;
@@ -71,10 +72,12 @@ export const Settings: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [changePasswordError, setChangePasswordError] = useState<string | null>(null);
 
-  // License reload state
-  const [isReloadingLicense, setIsReloadingLicense] = useState(false);
+  // License upload file name state
   const [licenseFileName, setLicenseFileName] = useState<string | null>(null);
-  const [licenseExpiry, setLicenseExpiry] = useState('June 3, 2027');
+
+  // License hook queries & mutations
+  const { data: licenseInfo, isFetching: isFetchingLicenseInfo, refetch: refetchLicenseInfo } = useLicenseInfo();
+  const activateLicenseMutation = useActivateLicense();
 
   // Helper: Mask email (only show first 3 letters and after that put just 5 '*' with the '@something.com' after it)
   const maskEmail = (emailStr: string) => {
@@ -359,14 +362,7 @@ export const Settings: React.FC = () => {
 
   // License reload logic
   const handleReloadLicense = () => {
-    setIsReloadingLicense(true);
-    console.log('License reloaded. Daily quota: 1000 messages. Monthly quota: 30000 messages.');
-    
-    setTimeout(() => {
-      setIsReloadingLicense(false);
-      setSuccess('License refreshed from server!');
-      setTimeout(() => setSuccess(null), 3000);
-    }, 800);
+    refetchLicenseInfo();
   };
 
   // License upload logic
@@ -376,14 +372,16 @@ export const Settings: React.FC = () => {
       const file = files[0];
       console.log('New license uploaded:', file.name);
       setLicenseFileName(file.name);
-      setIsReloadingLicense(true);
-
-      setTimeout(() => {
-        setIsReloadingLicense(false);
-        setLicenseExpiry('June 3, 2028'); // Simulated updated expiry
-        setSuccess(`License successfully updated with "${file.name}"`);
-        setTimeout(() => setSuccess(null), 3000);
-      }, 1000);
+      activateLicenseMutation.mutate({ file }, {
+        onSuccess: () => {
+          setSuccess(`License successfully updated with "${file.name}"`);
+          setTimeout(() => setSuccess(null), 3000);
+        },
+        onError: (err: any) => {
+          setError(err?.response?.data?.message || err?.message || 'Failed to update license.');
+          setTimeout(() => setError(null), 3000);
+        }
+      });
     }
   };
 
@@ -632,10 +630,10 @@ export const Settings: React.FC = () => {
               size="small"
               startIcon={<IconRefresh size={16} />}
               onClick={handleReloadLicense}
-              disabled={isReloadingLicense}
+              disabled={isFetchingLicenseInfo}
               sx={{ fontWeight: 700, borderRadius: 2.5 }}
             >
-              {isReloadingLicense ? 'Reloading...' : 'Reload License'}
+              {isFetchingLicenseInfo ? 'Reloading...' : 'Reload License'}
             </Button>
           </Box>
 
@@ -646,7 +644,7 @@ export const Settings: React.FC = () => {
                   DAILY QUOTA
                 </Typography>
                 <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                  1,500 Messages
+                  {licenseInfo ? `${licenseInfo.dailyQuota.toLocaleString()} Messages` : 'N/A'}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   Refreshes daily at 00:00 UTC
@@ -660,7 +658,7 @@ export const Settings: React.FC = () => {
                   MONTHLY QUOTA
                 </Typography>
                 <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                  45,000 Messages
+                  {licenseInfo ? `${licenseInfo.monthlyQuota.toLocaleString()} Messages` : 'N/A'}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   Refreshes monthly
@@ -671,13 +669,13 @@ export const Settings: React.FC = () => {
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 2.5, border: '1px solid', borderColor: 'divider' }}>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 700, mb: 0.5 }}>
-                  LICENSE TIER
+                  LICENSE LIMITS
                 </Typography>
                 <Typography variant="h6" sx={{ fontWeight: 800, color: 'secondary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  Enterprise
+                  {licenseInfo ? `Max ${licenseInfo.maxAgents} Agents` : 'N/A'}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Full API integration access
+                  {licenseInfo ? `Max ${licenseInfo.maxUsers} Users` : 'N/A'}
                 </Typography>
               </Box>
             </Grid>
@@ -690,14 +688,14 @@ export const Settings: React.FC = () => {
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5, mb: 0.5 }}>
                   <Chip 
-                    label="ACTIVE" 
-                    color="success" 
+                    label={licenseInfo ? "ACTIVE" : "INACTIVE"} 
+                    color={licenseInfo ? "success" : "error"} 
                     size="small" 
                     sx={{ fontWeight: 800, fontSize: '0.7rem' }} 
                   />
                 </Box>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                  Expires {licenseExpiry}
+                  {licenseInfo ? `Expires ${new Date(licenseInfo.expiredAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}` : 'N/A'}
                 </Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 12, md: 12 }}>
@@ -712,9 +710,10 @@ export const Settings: React.FC = () => {
                   color="primary"
                   size="small"
                   startIcon={<IconUpload size={14} />}
+                  disabled={activateLicenseMutation.isPending}
                   sx={{ mt: 1.5, fontSize: '0.725rem', py: 0.5, borderRadius: 2, width: '100%', textTransform: 'none', fontWeight: 700 }}
                 >
-                  Upload License
+                  {activateLicenseMutation.isPending ? 'Uploading...' : 'Upload License'}
                   <input
                     type="file"
                     hidden
