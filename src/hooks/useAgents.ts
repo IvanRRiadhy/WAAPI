@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axiosServices from '../utils/axios'; // 🔜 Uncomment when backend is ready
+import axiosServices from '../utils/axios';
 
 // ── Types ──────────────────────────────────────────────────────────
 

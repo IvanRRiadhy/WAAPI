@@ -30,6 +30,7 @@ export const FullLayout: React.FC = () => {
   const [currentUser] = React.useState(() => {
     try {
       const saved = localStorage.getItem('currentUser');
+      console.log("Saved: ", saved);
       return saved ? JSON.parse(saved) : { name: 'Admin Developer' };
     } catch {
       return { name: 'Admin Developer' };
@@ -206,7 +207,7 @@ export const FullLayout: React.FC = () => {
               LOGGED IN AS
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
-              {currentUser.name}
+              {currentUser.username}
             </Typography>
           </Box>
           <Button 
