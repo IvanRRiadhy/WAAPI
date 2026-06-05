@@ -19,6 +19,7 @@ export interface LicenseInfo {
 
 // ── API Endpoints (for when backend is ready) ──────────────────────
 const LICENSE_API_URL = '/api/licenses';
+const MACHINE_API_URL = '/api/machines';
 
 // ── Mock Helpers ───────────────────────────────────────────────────
 
@@ -47,7 +48,7 @@ export function useLicenseInfo(enabled: boolean = true) {
     },
     enabled,
   });
-}
+};
 
 // ✅ Activate / upload license file
 export function useActivateLicense() {
@@ -58,13 +59,41 @@ export function useActivateLicense() {
       await delay(500);
       console.log(`New license uploaded: ${file.name}`);
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('license', file);
       const res = await axiosServices.post(`${LICENSE_API_URL}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       return res.data;
       // return { ...DEFAULT_LICENSE, expirationDate: '2029-06-03' };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['license-info'] });
+      queryClient.invalidateQueries({ queryKey: ['initial'] });
+    },
+  });
+};
+
+export function useMachineId() {
+  return useQuery({
+    queryKey: ['machine-id'],
+    queryFn: async () => {
+      await delay(200);
+      const res = await axiosServices.get(MACHINE_API_URL);
+      const data = res.data.collection;
+      if (data && typeof data === 'object' && 'machineId' in data) {
+        return data.machineId as string;
+      }
+      return data as string;
+    },
+  });
+};
+
+export function useInitial() {
+  return useQuery({
+    queryKey: ['initial'],
+    queryFn: async () => {
+      await delay(200);
+      const res = await axiosServices.get(`${MACHINE_API_URL}/initial`);
+      return res.data;
     },
   });
 }
+
