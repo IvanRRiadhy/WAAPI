@@ -1,5 +1,6 @@
 import React from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { 
   Box, 
   Typography, 
@@ -23,6 +24,7 @@ export const FullLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
+  const queryClient = useQueryClient();
 
   // Load current logged in user details
   const [currentUser] = React.useState(() => {
@@ -213,8 +215,8 @@ export const FullLayout: React.FC = () => {
             size="small" 
             fullWidth
             onClick={() => {
-              localStorage.removeItem('isLoggedIn');
-              localStorage.removeItem('currentUser');
+              localStorage.clear();
+              queryClient.clear();
               navigate('/login');
             }}
           >

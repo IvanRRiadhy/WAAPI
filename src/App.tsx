@@ -8,47 +8,48 @@ import {
   Card, 
   CardContent,
   CircularProgress,
+  IconButton,
+  Alert,
 } from '@mui/material';
 import { 
   IconUpload,
+  IconCopy,
+  IconCheck,
 } from '@tabler/icons-react';
 import { RouterProvider } from 'react-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { getAppTheme } from './theme';
 import { router } from './router';
 import { ThemeToggleContext } from './context/ThemeToggleContext';
+import { useInitial, useMachineId, useActivateLicense } from './hooks/useLicense';
 
 function App() {
   const themeMode = 'light';
   const theme = getAppTheme(themeMode);
   const toggleTheme = () => {};
 
-  // License validation states
-  const [isLicenseVerified, setIsLicenseVerified] = useState(false);
-  const [currentBootToken, setCurrentBootToken] = useState<string | null>(null);
-  const [isLoadingLicense, setIsLoadingLicense] = useState(true);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  // Fetch boot token to check for first launch/restart
+  // Queries & Mutations for License Validation
+  const { isLoading: isInitialLoading, isSuccess: isInitialSuccess, isError: isInitialError } = useInitial();
+  const { data: machineId, isLoading: isLoadingMachineId, isError: isMachineIdError, refetch: refetchMachineId } = useMachineId();
+  const activateLicenseMutation = useActivateLicense();
+  const queryClient = useQueryClient();
+
   useEffect(() => {
-    fetch('/api/boot-token')
-      .then((res) => res.json())
-      .then((data) => {
-        setCurrentBootToken(data.bootToken);
-        const savedToken = localStorage.getItem('bootToken');
-        if (savedToken === data.bootToken) {
-          setIsLicenseVerified(true);
+    if (isInitialError) {
+      localStorage.clear();
+      queryClient.removeQueries({
+        predicate: (query) => {
+          const key = query.queryKey[0];
+          return key !== 'initial' && key !== 'machine-id';
         }
-        setIsLoadingLicense(false);
-      })
-      .catch((err) => {
-        console.error('Failed to load boot token:', err);
-        // Fallback to verified for static builds or fallback environments
-        setIsLicenseVerified(true);
-        setIsLoadingLicense(false);
       });
-  }, []);
+    }
+  }, [isInitialError, queryClient]);
 
-  if (isLoadingLicense) {
+  if (isInitialLoading) {
     return (
       <ThemeProvider theme={theme}>
         <CssBaseline />
@@ -67,7 +68,7 @@ function App() {
     );
   }
 
-  if (!isLicenseVerified) {
+  if (!isInitialSuccess) {
     return (
       <ThemeToggleContext.Provider value={{ themeMode, toggleTheme }}>
         <ThemeProvider theme={theme}>
@@ -146,6 +147,89 @@ function App() {
                   </Typography>
                 </Box>
 
+                {/* Machine ID Fetcher */}
+                <Box 
+                  sx={{ 
+                    p: 2, 
+                    borderRadius: 2, 
+                    bgcolor: themeMode === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      fontWeight: 700, 
+                      color: 'text.secondary', 
+                      display: 'block', 
+                      mb: 1, 
+                      textTransform: 'uppercase', 
+                      letterSpacing: '0.05em' 
+                    }}
+                  >
+                    Machine ID
+                  </Typography>
+                  {isLoadingMachineId ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 0.5 }}>
+                      <CircularProgress size={16} thickness={5} />
+                      <Typography variant="body2" color="text.secondary">
+                        Fetching machine ID...
+                      </Typography>
+                    </Box>
+                  ) : isMachineIdError ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.5 }}>
+                      <Typography variant="body2" color="error">
+                        Failed to fetch Machine ID
+                      </Typography>
+                      <Button 
+                        size="small" 
+                        variant="text" 
+                        onClick={() => refetchMachineId()} 
+                        sx={{ minWidth: 'auto', p: 0, textTransform: 'none' }}
+                      >
+                        Retry
+                      </Button>
+                    </Box>
+                  ) : (
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          fontFamily: 'monospace', 
+                          fontWeight: 600, 
+                          wordBreak: 'break-all',
+                          bgcolor: themeMode === 'light' ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)',
+                          px: 1,
+                          py: 0.5,
+                          borderRadius: 1,
+                          flex: 1,
+                        }}
+                      >
+                        {typeof machineId === 'object' && machineId !== null
+                          ? (machineId as any).machineId || JSON.stringify(machineId)
+                          : machineId}
+                      </Typography>
+                      <IconButton 
+                        size="small" 
+                        onClick={() => {
+                          if (machineId) {
+                            const textToCopy = typeof machineId === 'object'
+                              ? (machineId as any).machineId || JSON.stringify(machineId)
+                              : machineId;
+                            navigator.clipboard.writeText(textToCopy);
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 2000);
+                          }
+                        }}
+                        color={copied ? "success" : "default"}
+                      >
+                        {copied ? <IconCheck size={18} /> : <IconCopy size={18} />}
+                      </IconButton>
+                    </Box>
+                  )}
+                </Box>
+
                 {/* Upload Zone */}
                 <Box>
                   <input 
@@ -193,22 +277,30 @@ function App() {
                   </Box>
                 </Box>
 
+                {/* Error message */}
+                {activateLicenseMutation.isError && (
+                  <Alert severity="error" sx={{ width: '100%' }}>
+                    {((activateLicenseMutation.error as any)?.response?.data?.message || 
+                      activateLicenseMutation.error.message || 
+                      'Invalid or expired license file')}
+                  </Alert>
+                )}
+
                 {/* Submit Button */}
                 <Button 
                   variant="contained" 
                   color="primary" 
                   fullWidth 
                   size="large"
-                  disabled={!selectedFile}
+                  disabled={!selectedFile || activateLicenseMutation.isPending}
                   onClick={() => {
-                    if (selectedFile && currentBootToken) {
-                      localStorage.setItem('bootToken', currentBootToken);
-                      setIsLicenseVerified(true);
+                    if (selectedFile) {
+                      activateLicenseMutation.mutate({ file: selectedFile });
                     }
                   }}
                   sx={{ py: 1.5, fontWeight: 700 }}
                 >
-                  Submit & Activate
+                  {activateLicenseMutation.isPending ? 'Activating...' : 'Submit & Activate'}
                 </Button>
               </CardContent>
             </Card>
