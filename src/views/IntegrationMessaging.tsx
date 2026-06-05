@@ -10,8 +10,6 @@ import {
   Grid, 
   Select,
   MenuItem,
-  Checkbox,
-  ListItemText,
   OutlinedInput,
   Table,
   TableBody,
@@ -23,7 +21,9 @@ import {
   InputLabel,
   FormControl,
   IconButton,
-  Autocomplete
+  Autocomplete,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import { 
   IconArrowLeft, 
@@ -62,15 +62,22 @@ export const IntegrationMessaging: React.FC = () => {
   const integrationAgents = allAgents.filter(a => activeIntegration.agents.includes(a.id));
 
   // ── UI state ─────────────────────────────────────────────────────
-  const [targetNumber, setTargetNumber] = useState('+6281234567890');
-  const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>([]);
+  const [targetNumber, setTargetNumber] = useState('6282256337325');
+  const [selectedAgentId, setSelectedAgentId] = useState<string>('');
   const [messageText, setMessageText] = useState('');
   const [sendStatus, setSendStatus] = useState('Idle');
+  const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
 
-  // Pre-fill agent selection with all integration's linked agents
+  // Pre-fill agent selection with the first agent linked to this integration
   useEffect(() => {
-    if (activeIntegration.agents) {
-      setSelectedAgentIds(activeIntegration.agents);
+    if (activeIntegration.agents && activeIntegration.agents.length > 0) {
+      setSelectedAgentId(activeIntegration.agents[0]);
+    } else {
+      setSelectedAgentId('');
     }
   }, [activeIntegration]);
 
@@ -82,35 +89,38 @@ export const IntegrationMessaging: React.FC = () => {
 
   const handleSendMessage = () => {
     if (!messageText.trim()) return;
-    if (selectedAgentIds.length === 0) return;
+    if (!selectedAgentId) return;
     
     const target = targetNumber.trim();
     if (!target) return;
 
     setSendStatus('Sending...');
 
-    // Resolve agent names for display
-    const agentNames = selectedAgentIds.map(id => {
-      const found = allAgents.find(a => a.id === id);
-      return found ? found.name : id;
-    });
-
     sendMessage.mutate(
       {
         message: messageText.trim(),
-        target,
-        agentIds: selectedAgentIds,
-        agentNames,
-        integrationId: activeIntegration.id,
+        phone: target,
+        agentId: selectedAgentId,
       },
       {
         onSuccess: () => {
           setMessageText('');
-          // Update status after delivery simulation
-          setTimeout(() => {
-            setSendStatus('Delivered');
-          }, 1600);
+          setSendStatus('Delivered');
+          setToast({
+            open: true,
+            message: 'Message sent successfully!',
+            severity: 'success',
+          });
         },
+        onError: (err: any) => {
+          setSendStatus('Failed');
+          const errMsg = err?.response?.data?.msg || err?.message || 'Failed to send message';
+          setToast({
+            open: true,
+            message: errMsg,
+            severity: 'error',
+          });
+        }
       }
     );
   };
@@ -145,7 +155,7 @@ export const IntegrationMessaging: React.FC = () => {
       {/* Main Split Panels */}
       <Grid container spacing={3}>
         {/* Left Panel: Send Message */}
-        <Grid size={{ xs: 12, md: 7 }}>
+        <Grid size={{ xs: 12, md: 12 }}>
           <Card sx={{ height: '70vh', display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ p: 3.5, display: 'flex', flexDirection: 'column', gap: 3, height: '100%', boxSizing: 'border-box' }}>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
@@ -200,23 +210,18 @@ export const IntegrationMessaging: React.FC = () => {
                     />
                   </Grid>
 
-                  {/* Agent Checklist Selector */}
+                  {/* Agent Selector */}
                   <Grid size={{ xs: 12, sm: 5 }}>
                     <FormControl fullWidth size="small">
                       <InputLabel id="agent-select-label" sx={{ fontWeight: 600 }}>Agent</InputLabel>
                       <Select
                         labelId="agent-select-label"
-                        multiple
-                        value={selectedAgentIds}
-                        onChange={(e) => setSelectedAgentIds(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value as string[])}
+                        value={selectedAgentId}
+                        onChange={(e) => setSelectedAgentId(e.target.value as string)}
                         input={<OutlinedInput label="Agent" sx={{ borderRadius: 2.5 }} />}
-                        renderValue={(selected) => selected.map(id => {
-                          const found = allAgents.find(a => a.id === id);
-                          return found ? found.name : id;
-                        }).join(', ')}
                       >
                         {integrationAgents.length === 0 ? (
-                          <MenuItem disabled>
+                          <MenuItem disabled value="">
                             <Typography variant="body2" color="text.secondary">
                               No agents linked to integration
                             </Typography>
@@ -224,8 +229,7 @@ export const IntegrationMessaging: React.FC = () => {
                         ) : (
                           integrationAgents.map((agent) => (
                             <MenuItem key={agent.id} value={agent.id}>
-                              <Checkbox checked={selectedAgentIds.includes(agent.id)} size="small" />
-                              <ListItemText primary={agent.name} />
+                              {agent.name}
                             </MenuItem>
                           ))
                         )}
@@ -260,7 +264,7 @@ export const IntegrationMessaging: React.FC = () => {
                   fullWidth
                   size="large"
                   onClick={handleSendMessage}
-                  disabled={!messageText.trim() || selectedAgentIds.length === 0 || sendMessage.isPending}
+                  disabled={!messageText.trim() || !selectedAgentId || sendMessage.isPending}
                   startIcon={<IconSend size={18} />}
                   sx={{ py: 1.5, fontWeight: 700, borderRadius: 2.5 }}
                 >
@@ -282,7 +286,7 @@ export const IntegrationMessaging: React.FC = () => {
                   }}
                 >
                   <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: '0.025em' }}>
-                    Status : <span style={{ color: sendStatus === 'Sending...' ? '#fb823c' : sendStatus.startsWith('Delivered') ? '#2e7d32' : 'inherit' }}>[ {sendStatus} ]</span>
+                    Status : <span style={{ color: sendStatus === 'Sending...' ? '#fb823c' : sendStatus.startsWith('Delivered') ? '#2e7d32' : sendStatus === 'Failed' ? '#d32f2f' : 'inherit' }}>[ {sendStatus} ]</span>
                   </Typography>
                 </Box>
               </Box>
@@ -291,14 +295,13 @@ export const IntegrationMessaging: React.FC = () => {
         </Grid>
 
         {/* Right Panel: Message Sent */}
-        <Grid size={{ xs: 12, md: 5 }}>
+        {/* <Grid size={{ xs: 12, md: 5 }}>
           <Card sx={{ height: '70vh', display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ p: 3.5, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 3, '&:last-child': { pb: 3.5 }, height: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 Message Sent
               </Typography>
 
-              {/* Table rendering logs */}
               <TableContainer 
                 component={Paper} 
                 variant="outlined"
@@ -396,7 +399,6 @@ export const IntegrationMessaging: React.FC = () => {
                 </Table>
               </TableContainer>
 
-              {/* Footer */}
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'text.secondary' }}>
                 <Typography variant="caption" sx={{ fontWeight: 600 }}>
                   Showing top 10 items
@@ -410,8 +412,25 @@ export const IntegrationMessaging: React.FC = () => {
               </Box>
             </CardContent>
           </Card>
-        </Grid>
+        </Grid> */}
       </Grid>
+
+      {/* Toast Notification */}
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={4000}
+        onClose={() => setToast({ ...toast, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setToast({ ...toast, open: false })} 
+          severity={toast.severity} 
+          sx={{ width: '100%', borderRadius: 2.5 }}
+          variant="filled"
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

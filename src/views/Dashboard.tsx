@@ -183,7 +183,7 @@ export const Dashboard: React.FC = () => {
       background: 'transparent',
     },
     colors: chartColors,
-    labels: ['Pending', 'Sent', 'Failed'],
+    labels: [ 'Sent', 'Failed','Pending'],
     stroke: {
       show: true,
       colors: [theme.palette.background.paper],

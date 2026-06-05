@@ -16,10 +16,10 @@ import {
 } from '@mui/material';
 import { IconEye, IconEyeOff, IconCheck, IconQrcode } from '@tabler/icons-react';
 import { PhoneInput } from '../components/PhoneInput';
-import { getCountryCallingCode } from 'libphonenumber-js';
+import axiosServices from '../utils/axios';
 
 export const Register: React.FC = () => {
-  const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [company, setCompany] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [countryCode, setCountryCode] = useState('ID');
@@ -55,7 +55,7 @@ export const Register: React.FC = () => {
   const theme = useTheme();
 
   const isFormFilled = !!(
-    name.trim() &&
+    username.trim() &&
     company.trim() &&
     whatsapp.trim() &&
     email.trim() &&
@@ -63,14 +63,14 @@ export const Register: React.FC = () => {
     confirmPassword
   );
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
     setWhatsappError(null);
 
     // Verify all fields filled
-    if (!name.trim() || !company.trim() || !whatsapp.trim() || !email.trim() || !password || !confirmPassword) {
+    if (!username.trim() || !company.trim() || !whatsapp.trim() || !email.trim() || !password || !confirmPassword) {
       setError('Please fill in all fields.');
       if (!whatsapp.trim()) {
         setWhatsappError('PLEASE FILL OUT THE FIELD');
@@ -102,46 +102,26 @@ export const Register: React.FC = () => {
       return;
     }
 
-    // Retrieve existing list
-    const storedUsers = localStorage.getItem('registeredUsers');
-    let users = [];
-    if (storedUsers) {
-      try {
-        users = JSON.parse(storedUsers);
-        if (!Array.isArray(users)) {
-          users = [];
-        }
-      } catch (err) {
-        users = [];
+    try {
+      const res = await axiosServices.post('/api/auth/signup', {
+        username: username.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        confirm_password: confirmPassword
+      });
+      console.log(res);
+      if(res.data.status === 'success'){
+        setSuccess(res.data.msg);
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      } else {
+        setError(res.data.msg);
       }
+    } catch (err: any) {
+      console.error('Registration failed:', err);
+      setError(err.response?.data?.msg || err.message || 'Registration failed. Please try again.');
     }
-
-    // Check if email already registered
-    const emailVal = email.trim().toLowerCase();
-    if (users.some((u) => u.email === emailVal)) {
-      setError('This email address is already registered.');
-      return;
-    }
-
-    const dialCode = getCountryCallingCode(countryCode as any);
-    const fullWhatsapp = dialCode + whatsapp.trim();
-
-    // Save user
-    const newUser = {
-      name: name.trim(),
-      company: company.trim(),
-      whatsapp: fullWhatsapp,
-      email: emailVal,
-      password,
-    };
-
-    users.push(newUser);
-    localStorage.setItem('registeredUsers', JSON.stringify(users));
-
-    setSuccess('Registration successful! Redirecting to login...');
-    setTimeout(() => {
-      navigate('/login');
-    }, 2000);
   };
 
   return (
@@ -235,12 +215,12 @@ export const Register: React.FC = () => {
               >
                 <TextField
                   fullWidth
-                  label="Full Name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  label="Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   variant="outlined"
                   size="small"
-                  placeholder="John Doe"
+                  placeholder="admin"
                 />
 
                 <TextField

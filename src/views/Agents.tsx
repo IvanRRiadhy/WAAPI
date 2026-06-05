@@ -23,17 +23,274 @@ import {
   IconPlayerPlay, 
   IconPlayerPause, 
   IconLogout, 
-  IconLogin 
+  IconBolt,
+  IconRefresh
 } from '@tabler/icons-react';
-import { useAgentList, useAddAgent, useEditAgent, useDeleteAgent } from '../hooks/useAgents';
+import { 
+  useAgentList, 
+  useAddAgent, 
+  useDeleteAgent,
+  useStartAgent,
+  useStopAgent,
+  useWakeupAgent,
+  useQRAgent,
+  useQRStatusAgent,
+  useLogoutAgent
+} from '../hooks/useAgents';
 import type { AgentItem } from '../hooks/useAgents';
+import { useQueryClient } from '@tanstack/react-query';
+
+interface AgentCardProps {
+  agent: AgentItem;
+  handleToggleStatus: (agent: AgentItem) => void;
+  setAgentToDelete: (agent: AgentItem) => void;
+  startPending: boolean;
+  stopPending: boolean;
+  wakeupAgent: any;
+  logoutAgent: any;
+  deletePending: boolean;
+}
+
+const AgentCard: React.FC<AgentCardProps> = ({
+  agent,
+  handleToggleStatus,
+  setAgentToDelete,
+  startPending,
+  stopPending,
+  wakeupAgent,
+  logoutAgent,
+  deletePending
+}) => {
+  const queryClient = useQueryClient();
+  const isQrRequired = agent.status === 'QR_REQUIRED';
+  
+  const { data: qrData, isLoading: isQrLoading } = useQRAgent(agent.id, isQrRequired);
+  const { data: qrStatusData } = useQRStatusAgent(agent.id, isQrRequired);
+
+  React.useEffect(() => {
+    if (isQrRequired && qrStatusData && qrStatusData.collection && qrStatusData.collection.qr_status !== 'QR_REQUIRED') {
+      queryClient.invalidateQueries({ queryKey: ['agent-list'] });
+    }
+  }, [qrStatusData, isQrRequired, queryClient]);
+
+  const isActive = agent.status === 'ACTIVE' || agent.status === 'READY';
+  const isStopped = agent.status === 'STOPPED';
+  const isIdle = agent.status === 'IDLE';
+  const isStarting = agent.status === 'STARTING';
+
+  let statusColor: 'success' | 'warning' | 'default' | 'info' | 'error' = 'default';
+  let chipLabel = 'LOGGED OUT';
+  let statusBg = 'rgba(0, 0, 0, 0.04)';
+  let statusText = 'text.secondary';
+  
+  if (isActive) {
+    statusColor = 'success';
+    chipLabel = agent.status;
+    statusBg = 'rgba(46, 125, 50, 0.08)';
+    statusText = 'success.main';
+  } else if (isStopped) {
+    statusColor = 'warning';
+    chipLabel = 'STOPPED';
+    statusBg = 'rgba(239, 108, 0, 0.08)';
+    statusText = 'warning.main';
+  } else if (isIdle) {
+    statusColor = 'info';
+    chipLabel = 'IDLE';
+    statusBg = 'rgba(2, 136, 209, 0.08)';
+    statusText = 'info.main';
+  } else if (isStarting) {
+    statusColor = 'warning';
+    chipLabel = 'STARTING';
+    statusBg = 'rgba(239, 108, 0, 0.08)';
+    statusText = 'warning.main';
+  } else if (isQrRequired) {
+    statusColor = 'error';
+    chipLabel = 'QR REQUIRED';
+    statusBg = 'rgba(198, 40, 40, 0.08)';
+    statusText = 'error.main';
+  } else if (agent.status === 'AUTHENTICATED') {
+    statusColor = 'info';
+    chipLabel = 'AUTHENTICATED';
+    statusBg = 'rgba(2, 136, 209, 0.08)';
+    statusText = 'info.main';
+  } else {
+    chipLabel = agent.status;
+    statusColor = 'info';
+    statusBg = 'rgba(2, 136, 209, 0.08)';
+    statusText = 'info.main';
+  }
+
+  const isRunning = isActive || isIdle || isStarting || isQrRequired || agent.status === 'AUTHENTICATED';
+  const showLogout = agent.status !== 'IDLE' && agent.status !== 'QR_REQUIRED' && agent.status !== 'AUTHENTICATED';
+
+  return (
+    <Grid key={agent.id} size={{ xs: 12, sm: 6, md: 4 }}>
+      <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <CardContent sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 2.5, '&:last-child': { pb: 3 } }}>
+          {/* Status header */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box 
+              sx={{ 
+                width: 40, 
+                height: 40, 
+                borderRadius: 2, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                bgcolor: statusBg,
+                color: statusText,
+              }}
+            >
+              <IconCpu size={20} />
+            </Box>
+            <Chip 
+              label={chipLabel} 
+              size="small" 
+              color={statusColor} 
+              sx={{ fontWeight: 700, fontSize: '0.7rem' }} 
+            />
+          </Box>
+
+          {/* Name and ID */}
+          <Box sx={{ flexGrow: 1 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+              {agent.name}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem' }}>
+              ID: {agent.id}
+            </Typography>
+
+            {/* QR Code display section if status is QR_REQUIRED */}
+            {isQrRequired && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 2, gap: 1 }}>
+                {isQrLoading ? (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2, gap: 1 }}>
+                    <CircularProgress size={24} />
+                    <Typography variant="caption" color="text.secondary">
+                      Loading QR Code...
+                    </Typography>
+                  </Box>
+                ) : qrData?.collection?.qr ? (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                    <Box 
+                      component="img"
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData.collection.qr)}`}
+                      alt="Agent QR Code"
+                      sx={{ 
+                        width: 150, 
+                        height: 150, 
+                        border: '1px solid', 
+                        borderColor: 'divider', 
+                        borderRadius: 0,
+                        p: 1,
+                        bgcolor: 'white'
+                      }}
+                    />
+                    <Typography variant="caption" color="text.secondary">
+                      Scan using WhatsApp Link Device
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Typography variant="caption" color="error">
+                    Failed to load QR code.
+                  </Typography>
+                )}
+              </Box>
+            )}
+          </Box>
+
+          <Divider />
+
+          {/* Controls: Delete, Stop/Start, Logout/Login */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+            <Box sx={{ display: 'flex', gap: 1.5 }}>
+              {/* Stop / Start Button */}
+              <Button
+                variant={isRunning ? 'outlined' : 'contained'}
+                color={isRunning ? 'warning' : 'primary'}
+                fullWidth
+                size="small"
+                startIcon={isRunning ? <IconPlayerPause size={16} /> : <IconPlayerPlay size={16} />}
+                onClick={() => handleToggleStatus(agent)}
+                disabled={startPending || stopPending}
+                sx={{ fontWeight: 700, borderRadius: 2, py: 0.75 }}
+              >
+                {isRunning ? 'Stop' : 'Start'}
+              </Button>
+
+              {/* Logout Button */}
+              {showLogout && (
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  fullWidth
+                  size="small"
+                  startIcon={<IconLogout size={16} />}
+                  onClick={() => {
+                    logoutAgent.mutate(agent.id);
+                  }}
+                  disabled={logoutAgent.isPending}
+                  sx={{ fontWeight: 700, borderRadius: 2, py: 0.75 }}
+                >
+                  {logoutAgent.isPending ? 'Logging Out...' : 'Logout'}
+                </Button>
+              )}
+            {/* Wake Up Button (only displayed if started and idle/authenticated) */}
+            {(isIdle || agent.status === 'AUTHENTICATED') && (
+              <Button
+                variant="contained"
+                color="success"
+                fullWidth
+                size="small"
+                startIcon={<IconBolt size={16} />}
+                onClick={() => wakeupAgent.mutate(agent.id)}
+                disabled={wakeupAgent.isPending}
+                sx={{ fontWeight: 700, borderRadius: 2, py: 0.75 }}
+              >
+                {wakeupAgent.isPending ? 'Waking Up...' : 'Wake Up'}
+              </Button>
+            )}
+            </Box>
+
+
+
+            {/* Delete Button */}
+            <Button
+              variant="outlined"
+              color="error"
+              fullWidth
+              size="small"
+              startIcon={<IconTrash size={16} />}
+              onClick={() => setAgentToDelete(agent)}
+              disabled={deletePending}
+              sx={{ 
+                fontWeight: 700, 
+                borderRadius: 2,
+                py: 0.75,
+                borderStyle: 'dashed',
+                '&:hover': {
+                  borderStyle: 'solid'
+                }
+              }}
+            >
+              Delete Agent
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+    </Grid>
+  );
+};
 
 export const Agents: React.FC = () => {
   // ── Query hooks ──────────────────────────────────────────────────
-  const { data: agents = [], isLoading } = useAgentList();
+  const { data: agents = [], isLoading, refetch, isFetching } = useAgentList();
   const addAgent = useAddAgent();
-  const editAgent = useEditAgent();
   const deleteAgent = useDeleteAgent();
+  const startAgent = useStartAgent();
+  const stopAgent = useStopAgent();
+  const wakeupAgent = useWakeupAgent();
+  const logoutAgent = useLogoutAgent();
 
   // ── UI state (dialogs, forms) ────────────────────────────────────
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -41,16 +298,14 @@ export const Agents: React.FC = () => {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [agentToDelete, setAgentToDelete] = useState<AgentItem | null>(null);
 
-  // Toggle agent status between ACTIVE and STOPPED
+  // Toggle agent status between started and stopped
   const handleToggleStatus = (agent: AgentItem) => {
-    const nextStatus = agent.status === 'ACTIVE' ? 'STOPPED' : 'ACTIVE';
-    editAgent.mutate({ id: agent.id, status: nextStatus });
-  };
-
-  // Toggle login status between LOGGED_OUT and ACTIVE
-  const handleToggleLogin = (agent: AgentItem) => {
-    const nextStatus = agent.status === 'LOGGED_OUT' ? 'ACTIVE' : 'LOGGED_OUT';
-    editAgent.mutate({ id: agent.id, status: nextStatus });
+    const isStarted = agent.status !== 'STOPPED' && agent.status !== 'LOGGED_OUT';
+    if (isStarted) {
+      stopAgent.mutate(agent.id);
+    } else {
+      startAgent.mutate(agent.id);
+    }
   };
 
   // Confirm delete
@@ -102,19 +357,45 @@ export const Agents: React.FC = () => {
             Manage and configure active background workflows and NLP services.
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<IconPlus size={18} />}
-          onClick={() => {
-            setNewAgentName('');
-            setValidationError(null);
-            setAddDialogOpen(true);
-          }}
-          sx={{ fontWeight: 700, borderRadius: 2.5 }}
-        >
-          Add Agent
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <Button
+            variant="outlined"
+            color="primary"
+            disabled={isFetching}
+            startIcon={
+              <IconRefresh 
+                size={18} 
+                style={{ 
+                  animation: isFetching ? 'spin 1s linear infinite' : 'none'
+                }}
+              />
+            }
+            onClick={() => refetch()}
+            sx={{ 
+              fontWeight: 700, 
+              borderRadius: 2.5,
+              '@keyframes spin': {
+                '0%': { transform: 'rotate(0deg)' },
+                '100%': { transform: 'rotate(360deg)' }
+              }
+            }}
+          >
+            Refresh
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<IconPlus size={18} />}
+            onClick={() => {
+              setNewAgentName('');
+              setValidationError(null);
+              setAddDialogOpen(true);
+            }}
+            sx={{ fontWeight: 700, borderRadius: 2.5 }}
+          >
+            Add Agent
+          </Button>
+        </Box>
       </Box>
 
       {/* Scrollable Container for Grid */}
@@ -139,124 +420,19 @@ export const Agents: React.FC = () => {
           </Box>
         ) : (
         <Grid container spacing={3}>
-        {agents.map((agent) => {
-          const isActive = agent.status === 'ACTIVE';
-          const isStopped = agent.status === 'STOPPED';
-          const isLoggedOut = agent.status === 'LOGGED_OUT';
-
-          let statusColor: 'success' | 'warning' | 'default' = 'default';
-          let chipLabel = 'LOGGED OUT';
-          let statusBg = 'rgba(0, 0, 0, 0.04)';
-          let statusText = 'text.secondary';
-          
-          if (isActive) {
-            statusColor = 'success';
-            chipLabel = 'ACTIVE';
-            statusBg = 'rgba(46, 125, 50, 0.08)';
-            statusText = 'success.main';
-          } else if (isStopped) {
-            statusColor = 'warning';
-            chipLabel = 'STOPPED';
-            statusBg = 'rgba(239, 108, 0, 0.08)';
-            statusText = 'warning.main';
-          }
-
-          return (
-            <Grid key={agent.id} size={{ xs: 12, sm: 6, md: 4 }}>
-              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <CardContent sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 2.5, '&:last-child': { pb: 3 } }}>
-                  {/* Status header */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Box 
-                      sx={{ 
-                        width: 40, 
-                        height: 40, 
-                        borderRadius: 2, 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        bgcolor: statusBg,
-                        color: statusText,
-                      }}
-                    >
-                      <IconCpu size={20} />
-                    </Box>
-                    <Chip 
-                      label={chipLabel} 
-                      size="small" 
-                      color={statusColor} 
-                      sx={{ fontWeight: 700, fontSize: '0.7rem' }} 
-                    />
-                  </Box>
-
-                  {/* Name and ID */}
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
-                      {agent.name}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem' }}>
-                      ID: {agent.id}
-                    </Typography>
-                  </Box>
-
-                  <Divider />
-
-                  {/* Controls: Delete, Stop/Start, Logout/Login */}
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-                    <Box sx={{ display: 'flex', gap: 1.5 }}>
-                      {/* Stop / Start Button */}
-                      <Button
-                        variant={isActive ? 'outlined' : 'contained'}
-                        color={isActive ? 'warning' : 'primary'}
-                        fullWidth
-                        size="small"
-                        startIcon={isActive ? <IconPlayerPause size={16} /> : <IconPlayerPlay size={16} />}
-                        onClick={() => handleToggleStatus(agent)}
-                        sx={{ fontWeight: 700, borderRadius: 2, py: 0.75 }}
-                      >
-                        {isActive ? 'Stop' : 'Start'}
-                      </Button>
-
-                      {/* Logout / Login Button */}
-                      <Button
-                        variant="outlined"
-                        color={isLoggedOut ? 'primary' : 'secondary'}
-                        fullWidth
-                        size="small"
-                        startIcon={isLoggedOut ? <IconLogin size={16} /> : <IconLogout size={16} />}
-                        onClick={() => handleToggleLogin(agent)}
-                        sx={{ fontWeight: 700, borderRadius: 2, py: 0.75 }}
-                      >
-                        {isLoggedOut ? 'Login' : 'Logout'}
-                      </Button>
-                    </Box>
-
-                    {/* Delete Button */}
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      fullWidth
-                      size="small"
-                      startIcon={<IconTrash size={16} />}
-                      onClick={() => setAgentToDelete(agent)}
-                      sx={{ 
-                        fontWeight: 700, 
-                        borderRadius: 2,
-                        py: 0.75,
-                        borderStyle: 'dashed',
-                        '&:hover': {
-                          borderStyle: 'solid'
-                        }
-                      }}
-                    >
-                      Delete Agent
-                    </Button>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          );
-        })}
+        {agents.map((agent) => (
+          <AgentCard
+            key={agent.id}
+            agent={agent}
+            handleToggleStatus={handleToggleStatus}
+            setAgentToDelete={setAgentToDelete}
+            startPending={startAgent.isPending}
+            stopPending={stopAgent.isPending}
+            wakeupAgent={wakeupAgent}
+            logoutAgent={logoutAgent}
+            deletePending={deleteAgent.isPending}
+          />
+        ))}
         </Grid>
         )}
       </Box>

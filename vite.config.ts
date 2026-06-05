@@ -18,4 +18,13 @@ export default defineConfig({
       },
     },
   ],
+    server: {
+    proxy: {
+      '/api': {
+        target: 'http://192.168.1.128:3010',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
+  }
 });

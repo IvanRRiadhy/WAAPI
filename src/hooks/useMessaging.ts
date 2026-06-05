@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-// import axiosServices from '../utils/axios'; // 🔜 Uncomment when backend is ready
+import axiosServices from '../utils/axios'; // 🔜 Uncomment when backend is ready
+import type { AgentItem } from './useAgents';
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -19,9 +20,15 @@ export interface SendMessagePayload {
   agentNames: string[]; // resolved names for display
   integrationId: string;
 }
+export interface MessagePayload {
+  agentId: string;
+  phone: string;
+  message: string;
+  
+}
 
 // ── API Endpoints (for when backend is ready) ──────────────────────
-// const MESSAGE_API_URL = '/api/Message/';
+const MESSAGE_API_URL = '/api/messages/send';
 
 // ── Mock Helpers ───────────────────────────────────────────────────
 
@@ -71,40 +78,49 @@ export function useSendMessage() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (payload: SendMessagePayload) => {
-      // Create pending items for each agent
-      const newItems: HistoryItem[] = payload.agentIds.map((_, index) => ({
-        id: `msg-${Date.now()}-${index}`,
+    mutationFn: async (payload: MessagePayload) => {
+      // Resolve agent name for local history logs
+      const agents = queryClient.getQueryData<AgentItem[]>(['agent-list']) || [];
+      const agent = agents.find(a => a.id === payload.agentId);
+      const agentName = agent ? agent.name : payload.agentId;
+
+      const logId = `msg-${Date.now()}`;
+      const newLog: HistoryItem = {
+        id: logId,
         message: payload.message,
-        agentName: payload.agentNames[index] || payload.agentIds[index],
-        target: payload.target,
+        agentName,
+        target: payload.phone,
         status: 'Pending' as const,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      }));
+      };
 
-      // Save pending items
+      // Save pending log
       const existing = getStoredHistory();
-      const updated = [...newItems, ...existing].slice(0, 10);
-      saveHistory(updated);
+      saveHistory([newLog, ...existing].slice(0, 10));
+      queryClient.invalidateQueries({ queryKey: ['message-history'] });
 
-      // Simulate async delivery after 1.5s
-      setTimeout(() => {
+      try {
+        await axiosServices.post(MESSAGE_API_URL, payload);
+        
+        // Update local history to Sent
         const current = getStoredHistory();
-        const resolved = current.map(item => {
-          const isPending = newItems.some(ni => ni.id === item.id);
-          if (isPending && item.status === 'Pending') {
-            return { ...item, status: (Math.random() > 0.2 ? 'Sent' : 'Failed') as 'Sent' | 'Failed' };
-          }
-          return item;
-        });
+        const resolved = current.map(item =>
+          item.id === logId ? { ...item, status: 'Sent' as const } : item
+        );
         saveHistory(resolved);
+      } catch (error) {
+        // Update local history to Failed
+        const current = getStoredHistory();
+        const resolved = current.map(item =>
+          item.id === logId ? { ...item, status: 'Failed' as const } : item
+        );
+        saveHistory(resolved);
+        throw error;
+      } finally {
         queryClient.invalidateQueries({ queryKey: ['message-history'] });
-      }, 1500);
+      }
 
-      return newItems;
-    },
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['message-history', variables.integrationId] });
+      return newLog;
     },
   });
 }

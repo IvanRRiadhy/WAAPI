@@ -15,9 +15,10 @@ import {
   Divider
 } from '@mui/material';
 import { IconEye, IconEyeOff } from '@tabler/icons-react';
+import axiosServices from '../utils/axios';
 
 export const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,48 +26,40 @@ export const Login: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    const emailVal = email.trim().toLowerCase();
+    const usernameVal = username.trim();
     const passwordVal = password;
 
-    if (!emailVal || !passwordVal) {
+    if (!usernameVal || !passwordVal) {
       setError('Please fill in all fields.');
       return;
     }
 
-    // Fallback Admin Login
-    if (emailVal === 'admin@waagent.com' && passwordVal === 'admin123') {
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('currentUser', JSON.stringify({ name: 'Admin Developer', email: emailVal }));
-      navigate('/dashboard');
-      return;
-    }
+    try {
+      const res = await axiosServices.post('/api/auth/login', {
+        username: usernameVal,
+        password: passwordVal,
+      });
 
-    // Check localStorage saved users
-    const storedUsers = localStorage.getItem('registeredUsers');
-    if (storedUsers) {
-      try {
-        const users = JSON.parse(storedUsers);
-        if (Array.isArray(users)) {
-          const matchedUser = users.find(
-            (u) => u.email.trim().toLowerCase() === emailVal && u.password === passwordVal
-          );
-          if (matchedUser) {
-            localStorage.setItem('isLoggedIn', 'true');
-            localStorage.setItem('currentUser', JSON.stringify({ name: matchedUser.name, email: matchedUser.email }));
-            navigate('/dashboard');
-            return;
-          }
-        }
-      } catch (err) {
-        console.error('Error parsing stored users', err);
+      const token = res.data.collection.token || res.data.collection.accessToken || res.data.collection.data?.token || res.data.data?.accessToken;
+      if (!token) {
+        throw new Error('No authentication token received from server.');
       }
-    }
 
-    setError('Invalid email or password.');
+      localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('token', token);
+      
+      const userData = res.data.collection.user || { name: usernameVal, email: usernameVal };
+      localStorage.setItem('currentUser', JSON.stringify(userData));
+
+      navigate('/dashboard');
+    } catch (err: any) {
+      console.error('Login failed:', err);
+      setError(err.response?.data?.message || err.message || 'Invalid username or password.');
+    }
   };
 
   return (
@@ -150,13 +143,13 @@ export const Login: React.FC = () => {
           <Box component="form" onSubmit={handleLogin} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
             <TextField
               fullWidth
-              label="Email Address"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              label="Username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               variant="outlined"
               size="medium"
-              placeholder="example@waagent.com"
+              placeholder="admin"
             />
 
             <TextField
@@ -208,10 +201,10 @@ export const Login: React.FC = () => {
               💡 DEMO CREDENTIALS:
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontFamily: 'var(--font-mono)' }}>
-              Email: admin@waagent.com
+              Username: admin
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontFamily: 'var(--font-mono)' }}>
-              Password: admin123
+              Password: P@ssw0rd
             </Typography>
           </Box>
         </CardContent>
